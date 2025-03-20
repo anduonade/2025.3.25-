@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>虚拟报税练习</title>
     <style>
+        /* 样式保持不变 */
         body { font-family: Arial, sans-serif; padding: 20px; }
         .container { max-width: 400px; margin: 0 auto; }
         .input-group { margin-bottom: 15px; }
@@ -29,49 +30,59 @@
         <div class="result" id="result"></div>
     </div>
 
+    <!-- 添加 Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
     <script>
-        // Firebase配置（替换为你自己的配置）
-    const firebaseConfig = {
-        apiKey: "AIzaSyCMXpULh1-1NenIdQ1KFSAk3feWnIia_Yo",
-        authDomain: "tax-calculator-bd4f1.firebaseapp.com",
-        projectId: "tax-calculator-bd4f1",
-        storageBucket: "tax-calculator-bd4f1.firebasestorage.app",
-        messagingSenderId: "1082903305997",
-        appId: "1:1082903305997:web:54bdad860c32eb205f1a44"
-    };
-    // 初始化Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+        // Firebase配置（已修正）
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMXpULh1-1NenIdQ1KFSAk3feWnIia_Yo", // 删除末尾空格
+            authDomain: "tax-calculator-bd4f1.firebaseapp.com",
+            projectId: "tax-calculator-bd4f1",
+            storageBucket: "tax-calculator-bd4f1.firebasestorage.app",
+            messagingSenderId: "1082903305997",
+            appId: "1:1082903305997:web:54bdad860c32eb205f1a44"
+        };
 
-    function calculateTax() {
-        const sales = parseFloat(document.getElementById('sales').value);
-        const inputTax = parseFloat(document.getElementById('input-tax').value);
-
-        if (isNaN(sales) || isNaN(inputTax)) {
-            document.getElementById('result').innerHTML = "<p style='color: red;'>请输入有效数字！</p>";
-            return;
+        // 初始化Firebase并捕获错误
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            console.log("Firebase 初始化成功！");
+        } catch (error) {
+            console.error("Firebase 初始化失败:", error);
         }
 
-        const outputTax = sales * 0.13;
-        const taxPayable = outputTax - inputTax;
+        function calculateTax() {
+            const sales = parseFloat(document.getElementById('sales').value);
+            const inputTax = parseFloat(document.getElementById('input-tax').value);
 
-        document.getElementById('result').innerHTML = `
-            <p>销项税额：${outputTax.toFixed(2)} 万元</p>
-            <p>应纳税额：${taxPayable.toFixed(2)} 万元</p>
-            <p style="color: ${taxPayable >= 0 ? 'green' : 'red'};">${taxPayable >= 0 ? '正确！' : '错误！进项税额不能大于销项税额。'}</p>
-        `;
+            if (isNaN(sales) || isNaN(inputTax)) {
+                document.getElementById('result').innerHTML = "<p style='color: red;'>请输入有效数字！</p>";
+                return;
+            }
 
-        // 记录操作日志到Firestore
-        db.collection("logs").add({
-            sales: sales,
-            inputTax: inputTax,
-            outputTax: outputTax,
-            taxPayable: taxPayable,
-            timestamp: new Date().toISOString()
-        })
-        .then(() => console.log("日志已保存"))
-        .catch((error) => console.error("保存失败：", error));
-    }
+            const outputTax = sales * 0.13;
+            const taxPayable = outputTax - inputTax;
+
+            document.getElementById('result').innerHTML = `
+                <p>销项税额：${outputTax.toFixed(2)} 万元</p>
+                <p>应纳税额：${taxPayable.toFixed(2)} 万元</p>
+                <p style="color: ${taxPayable >= 0 ? 'green' : 'red'};">${taxPayable >= 0 ? '正确！' : '错误！进项税额不能大于销项税额。'}</p>
+            `;
+
+            // 记录操作日志到Firestore
+            db.collection("logs").add({
+                sales: sales,
+                inputTax: inputTax,
+                outputTax: outputTax,
+                taxPayable: taxPayable,
+                timestamp: new Date().toISOString()
+            })
+            .then(() => console.log("日志已保存"))
+            .catch((error) => console.error("保存失败：", error));
+        }
     </script>
 </body>
 </html>
