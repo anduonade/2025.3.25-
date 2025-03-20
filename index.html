@@ -25,16 +25,17 @@
             <label for="input-tax">进项税额（万元）：</label>
             <input type="number" id="input-tax" placeholder="请输入进项税额">
         </div>
-        <button class="button" onclick="calculateTax()">计算应纳税额</button>
+        <button class="button" id="calculateBtn">计算应纳税额</button>
         <div class="result" id="result"></div>
     </div>
 
-    <!-- 调整 Firebase SDK 加载顺序 -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <!-- 使用模块化 SDK -->
+    <script type="module">
+        // 1. 导入模块化 SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    <script>
-        // Firebase 配置（需确保与控制台完全一致）
+        // 2. Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyCMXpULh1-1NenIdQ1KFSAk3feWnIia_Yo",
             authDomain: "tax-calculator-bd4f1.firebaseapp.com",
@@ -44,57 +45,69 @@
             appId: "1:1082903305997:web:54bdad860c32eb205f1a44"
         };
 
-        // 初始化 Firebase（确保在 SDK 加载后执行）
-        let db; // 将 db 声明为全局变量
+        // 3. 初始化 Firebase 服务
+        let db;
         try {
-            const app = firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            console.log("Firebase 初始化成功！");
-            console.log("Firebase 实例:", firebase.app().name); // 验证初始化
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase 初始化成功 ✅");
+            
+            // 启用按钮
+            document.getElementById('calculateBtn').disabled = false;
         } catch (error) {
-            console.error("Firebase 初始化失败:", error);
+            console.error("Firebase 初始化失败 ❌:", error);
+            document.getElementById('result').innerHTML = 
+                `<p style="color: red;">系统初始化失败，请联系管理员</p>`;
         }
 
-        function calculateTax() {
+        // 4. 计算税额并保存数据
+        async function calculateTax() {
             const sales = parseFloat(document.getElementById('sales').value);
             const inputTax = parseFloat(document.getElementById('input-tax').value);
 
+            // 输入验证
             if (isNaN(sales) || isNaN(inputTax)) {
                 document.getElementById('result').innerHTML = "<p style='color: red;'>请输入有效数字！</p>";
                 return;
             }
 
+            // 计算税额
             const outputTax = sales * 0.13;
             const taxPayable = outputTax - inputTax;
 
+            // 显示结果
             document.getElementById('result').innerHTML = `
                 <p>销项税额：${outputTax.toFixed(2)} 万元</p>
                 <p>应纳税额：${taxPayable.toFixed(2)} 万元</p>
-                <p style="color: ${taxPayable >= 0 ? 'green' : 'red'};">${taxPayable >= 0 ? '正确！' : '错误！进项税额不能大于销项税额。'}</p>
+                <p style="color: ${taxPayable >= 0 ? 'green' : 'red'};">${
+                    taxPayable >= 0 ? '正确！' : '错误！进项税额不能大于销项税额。'
+                }</p>
             `;
 
-            // 添加写入前检查
-            if (typeof db === 'undefined') {
-                console.error("Firestore 未初始化！");
+            // 数据保存
+            if (!db) {
+                console.error("数据库未初始化！");
                 return;
             }
 
-            // 写入数据（添加错误处理）
-            db.collection("logs").add({
-                sales: sales,
-                inputTax: inputTax,
-                outputTax: outputTax,
-                taxPayable: taxPayable,
-                timestamp: new Date().toISOString()
-            })
-            .then((docRef) => {
+            try {
+                const docRef = await addDoc(collection(db, "logs"), {
+                    sales,
+                    inputTax,
+                    outputTax,
+                    taxPayable,
+                    timestamp: new Date().toISOString()
+                });
                 console.log("文档已保存，ID:", docRef.id);
-            })
-            .catch((error) => {
+            } catch (error) {
                 console.error("保存失败:", error);
-                document.getElementById('result').innerHTML += "<p style='color: red;'>数据保存失败，请检查控制台！</p>";
-            });
+                document.getElementById('result').innerHTML += 
+                    "<p style='color: red;'>数据保存失败，请检查控制台！</p>";
+            }
         }
+
+        // 5. 绑定事件监听器
+        document.getElementById('calculateBtn').addEventListener('click', calculateTax);
     </script>
 </body>
 </html>
